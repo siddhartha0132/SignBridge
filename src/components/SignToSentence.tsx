@@ -3,9 +3,10 @@ import { useCamera } from "../lib/useCamera";
 import { getHandLandmarker } from "../lib/mediapipeHands";
 import { classifyLandmarks } from "../lib/classifier";
 import { reconstructSentence } from "../lib/llm";
-import { speak } from "../lib/speech";
+import { speak, primeSpeech, subscribeSpeakingState } from "../lib/speech";
 import { announce } from "../lib/announce";
 import { DistressWatcher, sendDistressAlert } from "../lib/emergency";
+import { TTSControls } from "./TTSControls";
 
 const WORD_GAP_MS = 1200; // no new word for this long -> treat buffer as one utterance
 
@@ -15,11 +16,20 @@ export function SignToSentence() {
   const [sentence, setSentence] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [distressArmed, setDistressArmed] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isBuilding, setIsBuilding] = useState(false);
 
   const lastWordRef = useRef<string | null>(null);
   const lastWordTimeRef = useRef(0);
   const watcherRef = useRef(new DistressWatcher());
   const rafRef = useRef<number>();
+
+  useEffect(() => {
+    const unsub = subscribeSpeakingState((speaking) => {
+      setIsSpeaking(speaking);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
@@ -65,13 +75,29 @@ export function SignToSentence() {
   }, [ready]);
 
   async function buildSentence() {
-    if (words.length === 0) return;
-    const result = await reconstructSentence(words, history);
-    setSentence(result);
-    setHistory((h) => [...h.slice(-4), result]);
-    setWords([]);
-    speak(result);
-    announce(`Sentence: ${result}`);
+    if (words.length === 0 || isBuilding) return;
+
+    // CRITICAL FIX: Prime Web Speech API audio context synchronously on user click gesture!
+    // This unlocks browser autoplay policies before the async LLM network call.
+    primeSpeech();
+
+    setIsBuilding(true);
+    try {
+      const currentWords = [...words];
+      const result = await reconstructSentence(currentWords, history);
+      setSentence(result);
+      setHistory((h) => [...h.slice(-4), result]);
+      setWords([]);
+
+      // Speak the reconstructed sentence aloud
+      speak(result);
+      announce(`Sentence generated and spoken: ${result}`);
+    } catch (err) {
+      console.error("Sentence building error:", err);
+      announce("Failed to reconstruct sentence. Please try again.");
+    } finally {
+      setIsBuilding(false);
+    }
   }
 
   return (
@@ -85,15 +111,33 @@ export function SignToSentence() {
         <strong>Buffered words:</strong> {words.join(" · ") || "(none yet)"}
       </p>
 
-      <button className="primary-btn" onClick={buildSentence} disabled={words.length === 0}>
-        Build sentence &amp; speak
-      </button>
+      <div className="action-button-row">
+        <button
+          className="primary-btn build-speak-btn"
+          onClick={buildSentence}
+          disabled={words.length === 0 || isBuilding}
+        >
+          {isBuilding ? "Building sentence..." : "Build sentence & speak 🔊"}
+        </button>
+
+        {isSpeaking && (
+          <span className="speaking-badge" role="status" aria-live="polite">
+            <span className="audio-wave-anim" aria-hidden="true">🔊</span>
+            Speaking sentence aloud...
+          </span>
+        )}
+      </div>
 
       {sentence && (
-        <p className="sentence-output" aria-label="Reconstructed sentence">
-          {sentence}
-        </p>
+        <div className="sentence-output-card">
+          <p className="sentence-output" aria-label="Reconstructed sentence">
+            {sentence}
+          </p>
+          <TTSControls textToSpeak={sentence} />
+        </div>
       )}
+
+      {!sentence && <TTSControls autoShowControls={false} />}
 
       {distressArmed && (
         <div role="alertdialog" aria-label="Confirm emergency alert" className="distress-banner">

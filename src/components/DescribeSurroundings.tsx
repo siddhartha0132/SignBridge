@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useCamera } from "../lib/useCamera";
 import { captureFrame, describeImage } from "../lib/vision";
-import { speak } from "../lib/speech";
+import { speak, primeSpeech } from "../lib/speech";
 import { announce } from "../lib/announce";
+import { TTSControls } from "./TTSControls";
 
 export function DescribeSurroundings() {
   const { videoRef, ready, error } = useCamera();
@@ -11,6 +12,7 @@ export function DescribeSurroundings() {
 
   async function handleCapture() {
     if (!videoRef.current) return;
+    primeSpeech(); // Prime speech synchronously on click
     setLoading(true);
     announce("Taking photo and describing your surroundings.");
     try {
@@ -34,13 +36,16 @@ export function DescribeSurroundings() {
       </div>
 
       <button className="primary-btn" onClick={handleCapture} disabled={!ready || loading}>
-        {loading ? "Describing…" : "Take photo & describe"}
+        {loading ? "Describing…" : "Take photo & describe 🔊"}
       </button>
 
       {description && (
-        <p className="sentence-output" aria-label="Scene description">
-          {description}
-        </p>
+        <div className="sentence-output-card">
+          <p className="sentence-output" aria-label="Scene description">
+            {description}
+          </p>
+          <TTSControls textToSpeak={description} />
+        </div>
       )}
     </section>
   );
