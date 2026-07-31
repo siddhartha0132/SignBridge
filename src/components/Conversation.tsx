@@ -3,23 +3,29 @@ import { useCamera } from "../lib/useCamera";
 import { getHandLandmarker } from "../lib/mediapipeHands";
 import { classifyLandmarks } from "../lib/classifier";
 import { reconstructSentence, tagEmotion } from "../lib/llm";
-import { listen, speak, isSTTSupported } from "../lib/speech";
+import { listen, speak, primeSpeech, isSTTSupported, subscribeSpeakingState } from "../lib/speech";
 import { announce } from "../lib/announce";
+import { TTSControls } from "./TTSControls";
 
 type CaptionEntry = { text: string; emoji: string; label: string };
 
-// Two sub-loops, kept in clearly separate effects so neither implicitly
-// depends on the other's state:
-//   Loop A (hearing -> non-hearing): mic -> transcript -> emotion tag -> caption
-//   Loop B (non-hearing -> hearing): camera -> gesture -> sentence -> TTS
 export function Conversation() {
   const { videoRef, ready } = useCamera();
   const [captions, setCaptions] = useState<CaptionEntry[]>([]);
   const [words, setWords] = useState<string[]>([]);
   const [sttOn, setSttOn] = useState(false);
+  const [lastSpoken, setLastSpoken] = useState<string>("");
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const lastWordRef = useRef<string | null>(null);
   const rafRef = useRef<number>();
+
+  useEffect(() => {
+    const unsub = subscribeSpeakingState((speaking) => {
+      setIsSpeaking(speaking);
+    });
+    return unsub;
+  }, []);
 
   // Loop A — speech in, captions out
   useEffect(() => {
@@ -64,8 +70,10 @@ export function Conversation() {
 
   async function speakBufferedWords() {
     if (words.length === 0) return;
+    primeSpeech(); // Prime speech synchronously on user click
     const sentence = await reconstructSentence(words, captions.map((c) => c.text));
     setWords([]);
+    setLastSpoken(sentence);
     speak(sentence);
     announce(`Speaking: ${sentence}`);
   }
@@ -90,11 +98,23 @@ export function Conversation() {
 
         <div>
           <h2>Non-hearing person signs</h2>
-          <video ref={videoRef} muted playsInline aria-hidden="true" />
+          <div className="camera-frame">
+            <video ref={videoRef} muted playsInline aria-hidden="true" />
+          </div>
           <p>Buffered: {words.join(" · ") || "(none yet)"}</p>
-          <button className="primary-btn" onClick={speakBufferedWords} disabled={!words.length}>
-            Speak sentence aloud
-          </button>
+
+          <div className="action-button-row">
+            <button className="primary-btn" onClick={speakBufferedWords} disabled={!words.length}>
+              Speak sentence aloud 🔊
+            </button>
+            {isSpeaking && (
+              <span className="speaking-badge" role="status" aria-live="polite">
+                🔊 Speaking...
+              </span>
+            )}
+          </div>
+
+          {lastSpoken && <TTSControls textToSpeak={lastSpoken} />}
         </div>
       </div>
     </section>
