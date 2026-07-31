@@ -127,6 +127,8 @@ PORT=8787
 
 ![Screenshot 2](readme-2.png)
 
+![Screenshot 3](readme-3.png)
+
 ---
 
 ## Known Limitations
