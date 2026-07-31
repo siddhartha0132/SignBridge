@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ModeNav, type Mode } from "./components/ModeNav";
 import { LandingHeader } from "./components/LandingHeader";
-import { ProblemSection } from "./components/ProblemSection";
+import { HomePage3D } from "./components/HomePage3D";
+import { FeaturesPage } from "./components/FeaturesPage";
 import { SignToSentence } from "./components/SignToSentence";
 import { Conversation } from "./components/Conversation";
 import { DescribeSurroundings } from "./components/DescribeSurroundings";
@@ -12,13 +13,18 @@ import { EmergencyContactSetup } from "./components/EmergencyButton";
 export default function App() {
   const [mode, setMode] = useState<Mode>("home");
 
+  // Handle scrolling to top when mode changes, or scrolling to workspace
   const handleStartMode = (newMode: Mode) => {
     setMode(newMode);
-    // Smooth scroll to live workspace if launching a demo mode
-    if (newMode !== "home") {
-      setTimeout(() => {
-        document.getElementById("live-app-workspace")?.scrollIntoView({ behavior: "smooth" });
-      }, 50);
+    
+    // If going to features or home, scroll to top
+    if (newMode === "home" || newMode === "features") {
+       window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+       // If launching a specific tool, scroll to workspace
+       setTimeout(() => {
+         document.getElementById("live-app-workspace")?.scrollIntoView({ behavior: "smooth" });
+       }, 50);
     }
   };
 
@@ -29,14 +35,24 @@ export default function App() {
 
       {/* Main Container */}
       <div className="app-container">
-        {/* Sticky Floating Mode Navigation Bar */}
-        <ModeNav mode={mode} onChange={setMode} />
+        {/* Sticky Floating Mode Navigation Bar (only show on active tools, not home/features) */}
+        {mode !== "home" && mode !== "features" && (
+            <ModeNav mode={mode} onChange={setMode} />
+        )}
 
-        {/* Home / Problem Overview View */}
-        {mode === "home" && <ProblemSection onStartDemo={handleStartMode} />}
+        {/* Home / 3D Landing Page Hero */}
+        {mode === "home" && <HomePage3D onStartDemo={handleStartMode} />}
+
+        {/* Features Selection Page */}
+        {mode === "features" && (
+            <FeaturesPage 
+                onSelectFeature={handleStartMode} 
+                onBack={() => handleStartMode("home")} 
+            />
+        )}
 
         {/* Live Workspace Container */}
-        {mode !== "home" && (
+        {mode !== "home" && mode !== "features" && (
           <main id="live-app-workspace" className="app-workspace-card" aria-label={`${mode} panel`}>
             <div className="workspace-header">
               <span className="workspace-badge">LIVE INTERACTIVE PLAYGROUND</span>

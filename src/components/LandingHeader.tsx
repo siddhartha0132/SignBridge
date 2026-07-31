@@ -7,9 +7,10 @@ interface HeaderProps {
 
 export function LandingHeader({ currentMode, onSelectMode }: HeaderProps) {
   return (
-    <header className="site-header">
+    <header className="site-header sb3d-header">
       <div className="header-container">
-        <div className="brand-logo" onClick={() => onSelectMode("home")} role="button" tabIndex={0}>
+        {/* Brand Logo */}
+        <div className="brand-logo sb3d-brand" onClick={() => onSelectMode("home")} role="button" tabIndex={0}>
           <div className="logo-icon-glow">
             <span className="logo-symbol">🤟</span>
           </div>
@@ -19,25 +20,32 @@ export function LandingHeader({ currentMode, onSelectMode }: HeaderProps) {
           </div>
         </div>
 
-        <nav className="header-nav" aria-label="Main Navigation">
-          <a href="#problem" className="nav-link" onClick={() => onSelectMode("home")}>
-            Problem &amp; Impact
+        {/* Center nav pill — winterfell style */}
+        <nav className="sb3d-nav-pill" aria-label="Main Navigation">
+          <a href="#" className="sb3d-nav-link" onClick={(e) => { e.preventDefault(); onSelectMode("home"); }}>
+            Overview
           </a>
-          <a href="#features" className="nav-link" onClick={() => onSelectMode("home")}>
+          <a href="#features" className="sb3d-nav-link" onClick={() => onSelectMode("home")}>
             Innovation
           </a>
-          <a href="#live-demo" className="nav-link" onClick={() => onSelectMode("sign-to-sentence")}>
+          <a href="#" className="sb3d-nav-link" onClick={(e) => { e.preventDefault(); onSelectMode("sign-to-sentence"); }}>
             Live Translator
+          </a>
+          <a href="#" className="sb3d-nav-link" onClick={(e) => { e.preventDefault(); onSelectMode("conversation"); }}>
+            Conversation
           </a>
         </nav>
 
+        {/* CTA Button */}
         <div className="header-actions">
           <button
-            className="launch-demo-btn"
+            className="hp3d-btn-primary sb3d-header-cta"
             onClick={() => onSelectMode("sign-to-sentence")}
           >
-            <span>Launch Live App</span>
-            <span className="btn-arrow">→</span>
+            <span>Launch App</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
           </button>
         </div>
       </div>

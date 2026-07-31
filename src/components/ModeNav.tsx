@@ -1,5 +1,6 @@
 export type Mode =
   | "home"
+  | "features"
   | "sign-to-sentence"
   | "conversation"
   | "describe"
@@ -8,9 +9,10 @@ export type Mode =
   | "settings";
 
 const MODES: { id: Mode; label: string; icon: string }[] = [
-  { id: "home", label: "Overview & Impact", icon: "✨" },
+  { id: "home", label: "Home", icon: "🏠" },
+  { id: "features", label: "All Features", icon: "✨" },
   { id: "sign-to-sentence", label: "Sign → Sentence", icon: "🖐️" },
-  { id: "conversation", label: "Two-Way Conversation", icon: "💬" },
+  { id: "conversation", label: "Two-Way Conversation", icon: "🗣️" },
   { id: "describe", label: "Describe Surroundings", icon: "👁️" },
   { id: "trainer", label: "Teach a New Sign", icon: "🎓" },
   { id: "braille", label: "Text → Braille", icon: "⠃" },
