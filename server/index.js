@@ -8,21 +8,22 @@ import express from "express";
 const PORT = process.env.PORT || 8787;
 const API_KEY = process.env.NVIDIA_API_KEY;
 const MODEL = process.env.NVIDIA_MODEL || "minimaxai/minimax-m3";
+const VISION_MODEL = process.env.NVIDIA_VISION_MODEL || "meta/llama-3.2-11b-vision-instruct";
 const INVOKE_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
 
 const app = express();
 app.use(express.json({ limit: "8mb" })); // photos as base64 need headroom
 
-async function callNvidiaLLM(messages, maxTokens = 300) {
+async function callNvidiaLLM(messages, maxTokens = 300, model = MODEL) {
   if (!API_KEY) {
     throw new Error("NVIDIA_API_KEY is not set. See .env.example.");
   }
   
   const payload = {
-    model: MODEL,
-    messages: messages,
-    temperature: 0.7,
-    top_p: 0.95,
+    model,
+    messages,
+    temperature: 0.2,  // lower = faster, more deterministic
+    top_p: 0.7,
     max_tokens: maxTokens,
     stream: false
   };
@@ -87,7 +88,11 @@ app.post("/api/emotion", async (req, res) => {
 app.post("/api/describe", async (req, res) => {
   try {
     const { image } = req.body;
-    
+
+    if (!image) {
+      return res.status(400).json({ error: "No image data provided." });
+    }
+
     // NVIDIA NIM vision - MiniMax-M3 supports vision
     const messages = [
       {
@@ -108,10 +113,11 @@ app.post("/api/describe", async (req, res) => {
         ]
       }
     ];
-    
-    const description = await callNvidiaLLM(messages, 150);
+
+    const description = await callNvidiaLLM(messages, 60, VISION_MODEL);
     res.json({ description: description.trim() });
   } catch (err) {
+    console.error("[/api/describe] Error:", err.message || err);
     res.status(500).json({ error: String(err.message || err) });
   }
 });
