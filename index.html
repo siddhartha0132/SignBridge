@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SignBridge — AI Accessibility Companion</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- Announcements for screen readers get pushed into this live region
+         by src/lib/announce.ts, kept outside the React tree so it survives
+         re-renders of whatever mode is active. -->
+    <div id="sr-live" aria-live="polite" class="sr-only"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
