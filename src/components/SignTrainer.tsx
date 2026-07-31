@@ -74,39 +74,47 @@ export function SignTrainer() {
         {error && <p role="alert">Camera error: {error}</p>}
       </div>
 
-      <label htmlFor="sign-word">Word for this sign</label>
-      <input
-        id="sign-word"
-        value={word}
-        onChange={(e) => {
-          setWord(e.target.value);
-          setCaptured(0);
-        }}
-        placeholder="e.g. water"
-      />
+      <div className="feature-panel">
+        <label htmlFor="sign-word" className="tool-label">Word for this sign</label>
+        <input
+          id="sign-word"
+          className="tool-input"
+          value={word}
+          onChange={(e) => {
+            setWord(e.target.value);
+            setCaptured(0);
+          }}
+          placeholder="e.g. water"
+        />
 
-      <button className="primary-btn" onClick={captureSample} disabled={!ready}>
-        Capture sample ({captured}/{SAMPLES_PER_SIGN})
-      </button>
-      <button onClick={resetWord}>Start a different word</button>
+        <div className="feature-actions">
+          <button className="primary-btn" onClick={captureSample} disabled={!ready}>
+            Capture sample ({captured}/{SAMPLES_PER_SIGN})
+          </button>
+          <button className="cta-secondary-btn" onClick={resetWord}>Start a different word</button>
+        </div>
+      </div>
 
-      <h2>Your trained signs</h2>
-      <ul>
-        {gestures.map((g) => (
-          <li key={g.word}>
-            {g.word} ({g.samples.length} samples){" "}
-            <button
-              onClick={() => {
-                deleteGesture(g.word);
-                setGestures(listCustomGestures());
-              }}
-            >
-              Delete
-            </button>
-          </li>
-        ))}
-        {gestures.length === 0 && <li>No custom signs yet.</li>}
-      </ul>
+      <div className="feature-panel">
+        <h2 className="tool-label" style={{ marginBottom: "1rem" }}>Your trained signs</h2>
+        <ul className="feature-list">
+          {gestures.map((g) => (
+            <li key={g.word} className="feature-list-item">
+              <span><strong>{g.word}</strong> <span style={{color: "var(--text-muted)", fontSize: "0.85rem"}}>({g.samples.length} samples)</span></span>
+              <button
+                className="danger-btn-small"
+                onClick={() => {
+                  deleteGesture(g.word);
+                  setGestures(listCustomGestures());
+                }}
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+          {gestures.length === 0 && <li className="feature-list-item" style={{justifyContent: "center", color: "var(--text-muted)"}}>No custom signs yet.</li>}
+        </ul>
+      </div>
     </section>
   );
 }

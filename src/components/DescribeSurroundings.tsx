@@ -29,22 +29,43 @@ export function DescribeSurroundings() {
   }
 
   return (
-    <section aria-label="Describe my surroundings">
-      <div className="camera-frame">
-        <video ref={videoRef} muted playsInline aria-hidden="true" />
-        {error && <p role="alert">Camera error: {error}</p>}
+    <section aria-label="Describe my surroundings" className="feature-container">
+      <div className="feature-panel" style={{ borderTop: "4px solid var(--accent-amber)" }}>
+        <h2 className="tool-label" style={{ fontSize: "1.1rem" }}>Vision AI</h2>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+          Position your camera and take a photo. The AI will analyze the scene and speak aloud a detailed description of your surroundings.
+        </p>
+
+        <div className="camera-frame">
+          <video ref={videoRef} muted playsInline aria-hidden="true" />
+          {error && <p role="alert">Camera error: {error}</p>}
+        </div>
+        
+        <div className="feature-actions" style={{ marginTop: "1.5rem" }}>
+          <button 
+            className="primary-btn" 
+            style={{ width: "100%", background: loading ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #f59e0b, #d97706)", color: loading ? "var(--text-muted)" : "#fff" }} 
+            onClick={handleCapture} 
+            disabled={!ready || loading}
+          >
+            {loading ? (
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                <span className="pulse-record" style={{ background: "#f59e0b", boxShadow: "none", animation: "pulse-amber 1.5s infinite" }}></span> Analyzing Scene...
+              </span>
+            ) : "Take Photo & Describe 🔊"}
+          </button>
+        </div>
       </div>
 
-      <button className="primary-btn" onClick={handleCapture} disabled={!ready || loading}>
-        {loading ? "Describing…" : "Take photo & describe 🔊"}
-      </button>
-
       {description && (
-        <div className="sentence-output-card">
-          <p className="sentence-output" aria-label="Scene description">
-            {description}
-          </p>
-          <TTSControls textToSpeak={description} />
+        <div className="feature-panel" style={{ animation: "fadeSlideUp 0.3s ease-out" }}>
+          <h2 className="tool-label" style={{ fontSize: "1.1rem", color: "var(--accent-amber)" }}>Scene Description</h2>
+          <div className="sentence-output-card" style={{ marginTop: "1rem", boxShadow: "none", background: "rgba(0,0,0,0.2)" }}>
+            <p className="sentence-output" aria-label="Scene description">
+              {description}
+            </p>
+            <TTSControls textToSpeak={description} />
+          </div>
         </div>
       )}
     </section>

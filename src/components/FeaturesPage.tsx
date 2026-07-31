@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { type Mode } from "./ModeNav";
 
 interface FeaturesPageProps {
@@ -75,9 +76,24 @@ const FEATURES = [
 ];
 
 export function FeaturesPage({ onSelectFeature, onBack }: FeaturesPageProps) {
+  const [mouseX, setMouseX] = useState(0);
+  const [mouseY, setMouseY] = useState(0);
+  const [activeCard, setActiveCard] = useState<number | null>(null);
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      setMouseX((e.clientX / window.innerWidth - 0.5) * 2);
+      setMouseY((e.clientY / window.innerHeight - 0.5) * 2);
+    };
+    window.addEventListener("mousemove", handle);
+    return () => window.removeEventListener("mousemove", handle);
+  }, []);
+
   return (
     <div className="fp-root">
-      {/* Back nav */}
+      <div className="hp3d-orb hp3d-orb-1" style={{ transform: "translate(" + (mouseX * -10) + "px, " + (mouseY * -10) + "px)" }} />
+      <div className="hp3d-orb hp3d-orb-2" style={{ transform: "translate(" + (mouseX * 8) + "px, " + (mouseY * 8) + "px)" }} />
+
       <div className="fp-back-bar">
         <button className="fp-back-btn" onClick={onBack}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -92,7 +108,6 @@ export function FeaturesPage({ onSelectFeature, onBack }: FeaturesPageProps) {
         </div>
       </div>
 
-      {/* Header */}
       <div className="fp-header">
         <div className="fp-header-pill">
           <span className="fp-pill-dot" />
@@ -107,47 +122,42 @@ export function FeaturesPage({ onSelectFeature, onBack }: FeaturesPageProps) {
         </p>
       </div>
 
-      {/* Feature Cards Grid */}
       <div className="fp-grid">
         {FEATURES.map((f, i) => (
           <button
             key={f.id}
-            className="fp-card"
+            className={"fp-card" + (activeCard === i ? " fp-card-active" : "")}
             style={{
               "--fp-color": f.color,
               "--fp-glow": f.glow,
-              animationDelay: `${i * 0.07}s`,
+              animationDelay: (i * 0.07) + "s",
+              transform: activeCard === i
+                  ? "perspective(800px) rotateX(" + (mouseY * -6) + "deg) rotateY(" + (mouseX * 6) + "deg) translateZ(15px) scale(1.02)"
+                  : "perspective(800px) rotateX(" + (mouseY * -1.5) + "deg) rotateY(" + (mouseX * 1.5) + "deg) translateZ(0px) scale(1)",
             } as React.CSSProperties}
             onClick={() => onSelectFeature(f.id)}
+            onMouseEnter={() => setActiveCard(i)}
+            onMouseLeave={() => setActiveCard(null)}
           >
-            {/* Tag */}
             {f.tag && (
               <div className="fp-card-tag" style={{ background: f.color + "20", color: f.color, borderColor: f.color + "40" }}>
                 {f.tag}
               </div>
             )}
-
-            {/* Glow sweep */}
             <div className="fp-card-glow" />
-
-            {/* Top row */}
             <div className="fp-card-top">
-              <div className="fp-icon-wrap" style={{ background: f.color + "18", boxShadow: `0 8px 28px ${f.glow}` }}>
+              <div className="fp-icon-wrap" style={{ background: f.color + "18", boxShadow: "0 8px 28px " + f.glow }}>
                 <span className="fp-icon">{f.icon}</span>
               </div>
               <div className="fp-card-dot-wrap">
-                <div className="fp-card-dot" style={{ background: f.color, boxShadow: `0 0 10px ${f.color}` }} />
+                <div className="fp-card-dot" style={{ background: f.color, boxShadow: "0 0 10px " + f.color }} />
                 <span className="fp-tagline" style={{ color: f.color }}>{f.tagline}</span>
               </div>
             </div>
-
-            {/* Content */}
             <div className="fp-card-body">
               <h3 className="fp-card-title">{f.title}</h3>
               <p className="fp-card-desc">{f.desc}</p>
             </div>
-
-            {/* Footer */}
             <div className="fp-card-footer">
               <span className="fp-card-stat" style={{ color: f.color }}>⚡ {f.stat}</span>
               <div className="fp-launch-btn" style={{ borderColor: f.color + "60", color: f.color }}>
@@ -157,14 +167,11 @@ export function FeaturesPage({ onSelectFeature, onBack }: FeaturesPageProps) {
                 </svg>
               </div>
             </div>
-
-            {/* Bottom accent line */}
-            <div className="fp-card-line" style={{ background: `linear-gradient(90deg, transparent, ${f.color}, transparent)` }} />
+            <div className="fp-card-line" style={{ background: "linear-gradient(90deg, transparent, " + f.color + ", transparent)" }} />
           </button>
         ))}
       </div>
 
-      {/* Stats bar at bottom */}
       <div className="fp-stats-bar">
         {[
           { n: "466M+", l: "People Impacted" },
@@ -172,7 +179,7 @@ export function FeaturesPage({ onSelectFeature, onBack }: FeaturesPageProps) {
           { n: "6", l: "AI Modules" },
           { n: "100%", l: "Privacy-First" },
         ].map((s, i) => (
-          <div key={i} className="fp-stat">
+          <div key={i} className="fp-stat" style={{ animationDelay: (0.4 + i * 0.1) + "s" }}>
             <span className="fp-stat-n">{s.n}</span>
             <span className="fp-stat-l">{s.l}</span>
           </div>

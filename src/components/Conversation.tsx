@@ -19,6 +19,11 @@ export function Conversation() {
 
   const lastWordRef = useRef<string | null>(null);
   const rafRef = useRef<number>();
+  const sttOnRef = useRef(false);
+
+  useEffect(() => {
+    sttOnRef.current = sttOn;
+  }, [sttOn]);
 
   useEffect(() => {
     const unsub = subscribeSpeakingState((speaking) => {
@@ -30,13 +35,32 @@ export function Conversation() {
   // Loop A — speech in, captions out
   useEffect(() => {
     if (!sttOn || !isSTTSupported()) return;
-    const stop = listen(async (transcript, isFinal) => {
-      if (!isFinal || !transcript.trim()) return;
-      const { label, emoji } = await tagEmotion(transcript);
-      setCaptions((c) => [...c.slice(-6), { text: transcript, label, emoji }]);
-      announce(`${transcript}. Tone: ${label}`);
-    });
-    return stop;
+    let stopFn: (() => void) | undefined;
+    let isIntentionalStop = false;
+
+    const startListening = () => {
+      stopFn = listen(
+        async (transcript, isFinal) => {
+          if (!isFinal || !transcript.trim()) return;
+          const { label, emoji } = await tagEmotion(transcript);
+          setCaptions((c) => [...c.slice(-6), { text: transcript, label, emoji }]);
+          announce(`${transcript}. Tone: ${label}`);
+        },
+        () => {
+          // If the browser stopped it automatically but we didn't toggle it off, restart it
+          if (!isIntentionalStop && sttOnRef.current) {
+            setTimeout(startListening, 200);
+          }
+        }
+      );
+    };
+
+    startListening();
+
+    return () => {
+      isIntentionalStop = true;
+      if (stopFn) stopFn();
+    };
   }, [sttOn]);
 
   // Loop B — gesture in, speech out
@@ -79,43 +103,76 @@ export function Conversation() {
   }
 
   return (
-    <section aria-label="Two-way conversation">
+    <section aria-label="Two-way conversation" className="feature-container">
       <div className="conversation-grid">
-        <div>
-          <h2>Hearing person speaks</h2>
-          <button className="primary-btn" onClick={() => setSttOn((v) => !v)}>
-            {sttOn ? "Stop listening" : "Start listening"}
+        
+        {/* Hearing Person Side */}
+        <div className="feature-panel" style={{ borderTop: "4px solid var(--accent-emerald)" }}>
+          <h2 className="tool-label" style={{ fontSize: "1.1rem" }}>Hearing Person</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+            Speak into the microphone. AI will tag emotional tone and display live captions for the non-hearing user.
+          </p>
+          
+          <button 
+            className="primary-btn" 
+            style={{ width: "100%", background: sttOn ? "rgba(244, 63, 94, 0.15)" : "", color: sttOn ? "#f43f5e" : "", border: sttOn ? "1px solid rgba(244,63,94,0.3)" : "" }}
+            onClick={() => setSttOn((v) => !v)}
+          >
+            {sttOn ? (
+              <><span className="pulse-record"></span> Stop Listening</>
+            ) : (
+              "Start Microphone"
+            )}
           </button>
+          
           <ul aria-label="Live captions" className="caption-list">
             {captions.map((c, i) => (
-              <li key={i}>
-                <span aria-hidden="true">{c.emoji}</span> {c.text}
-                <span className="tone-tag"> ({c.label})</span>
+              <li key={i} className="caption-item">
+                <span aria-hidden="true" style={{ fontSize: "1.4rem" }}>{c.emoji}</span>
+                <span>{c.text}</span>
+                <span className="tone-tag">{c.label}</span>
               </li>
             ))}
+            {captions.length === 0 && (
+              <div style={{ textAlign: "center", padding: "2rem 0", color: "rgba(255,255,255,0.2)" }}>
+                No captions yet.
+              </div>
+            )}
           </ul>
         </div>
 
-        <div>
-          <h2>Non-hearing person signs</h2>
+        {/* Non-Hearing Person Side */}
+        <div className="feature-panel" style={{ borderTop: "4px solid var(--accent-cyan)" }}>
+          <h2 className="tool-label" style={{ fontSize: "1.1rem" }}>Non-Hearing Person</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+            Sign into the camera. AI will reconstruct your gestures into a fluent spoken response contextually aware of the captions.
+          </p>
+
           <div className="camera-frame">
             <video ref={videoRef} muted playsInline aria-hidden="true" />
           </div>
-          <p>Buffered: {words.join(" · ") || "(none yet)"}</p>
+          
+          <div style={{ marginTop: "1rem", minHeight: "2rem" }}>
+            <p style={{ margin: 0, fontWeight: 600 }}>
+              <span style={{ color: "var(--accent-cyan)" }}>Buffered words:</span> {words.length > 0 ? words.join(" · ") : <span style={{color: "rgba(255,255,255,0.3)", fontWeight: 400}}>Waiting for signs...</span>}
+            </p>
+          </div>
 
-          <div className="action-button-row">
-            <button className="primary-btn" onClick={speakBufferedWords} disabled={!words.length}>
+          <div className="feature-actions" style={{ marginTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "1rem" }}>
+            <button className="primary-btn" onClick={speakBufferedWords} disabled={!words.length} style={{ width: "100%" }}>
               Speak sentence aloud 🔊
             </button>
             {isSpeaking && (
-              <span className="speaking-badge" role="status" aria-live="polite">
-                🔊 Speaking...
+              <span className="speaking-badge" role="status" aria-live="polite" style={{ width: "100%", justifyContent: "center" }}>
+                <span className="audio-wave-anim" aria-hidden="true">🔊</span>
+                Speaking...
               </span>
             )}
           </div>
 
           {lastSpoken && <TTSControls textToSpeak={lastSpoken} />}
         </div>
+
       </div>
     </section>
   );
