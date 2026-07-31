@@ -3,54 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SignBridge - Meeting Interpreter</title>
+  <title>SignBridge</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="popup-container">
     <header>
-      <h1>🤝 SignBridge</h1>
-      <p class="tagline">Live Meeting Interpreter</p>
+      <div class="brand">
+        <h1>🤝 SignBridge</h1>
+        <span class="version">v1.0.0</span>
+      </div>
+      <p class="tagline">Hand Gesture Detection</p>
     </header>
 
     <div class="status-section">
-      <div class="status-indicator" id="statusIndicator">
+      <div class="status-indicator">
         <span class="status-dot" id="statusDot"></span>
-        <span id="statusText">Not Active</span>
+        <span id="statusText">Stopped</span>
       </div>
     </div>
 
     <div class="controls">
-      <button id="toggleBtn" class="primary-btn">
-        Start Interpretation
-      </button>
+      <button id="toggleBtn" class="primary-btn">Start</button>
     </div>
 
     <div class="info-section">
-      <h3>How it works:</h3>
-      <ol>
-        <li>Join a Google Meet call</li>
-        <li>Click "Start Interpretation"</li>
-        <li>Your signs will appear as live captions</li>
-        <li>Other participants can see the captions</li>
-      </ol>
+      <h3>Supported Platforms:</h3>
+      <div class="supported-tags">
+        <span class="tag">Google Meet</span>
+        <span class="tag">Zoom</span>
+        <span class="tag">MS Teams</span>
+        <span class="tag">Webex</span>
+        <span class="tag">Jitsi</span>
+      </div>
     </div>
-
-    <div class="settings-section">
-      <h3>Settings</h3>
-      <label>
-        <input type="checkbox" id="showConfidence" />
-        Show confidence scores
-      </label>
-      <label>
-        <input type="checkbox" id="soundEnabled" />
-        Sound notifications
-      </label>
-    </div>
-
-    <footer>
-      <p class="version">v1.0.0 MVP</p>
-    </footer>
   </div>
   <script src="popup.js"></script>
 </body>

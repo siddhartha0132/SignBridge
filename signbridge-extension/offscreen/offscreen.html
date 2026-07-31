@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SignBridge Offscreen</title>
+</head>
+<body>
+  <!-- Runs in the extension's own context — extension CSP applies, not the page's CSP.
+       vision_bundle.js must load first so MediaPipeVision is defined before offscreen.js runs. -->
+  <script src="/lib/vision_bundle.js"></script>
+  <script src="/offscreen/offscreen.js"></script>
+</body>
+</html>

@@ -1,77 +1,44 @@
-// Popup UI controller for the SignBridge extension
 let isActive = false;
-
 const toggleBtn = document.getElementById('toggleBtn');
 const statusText = document.getElementById('statusText');
-const statusDot = document.getElementById('statusDot');
-const showConfidence = document.getElementById('showConfidence');
-const soundEnabled = document.getElementById('soundEnabled');
 
-// Load saved state
-chrome.storage.local.get(['isActive', 'showConfidence', 'soundEnabled'], (result) => {
-  isActive = result.isActive || false;
-  showConfidence.checked = result.showConfidence !== false;
-  soundEnabled.checked = result.soundEnabled !== false;
-  updateUI();
-});
+toggleBtn.onclick = async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    statusText.textContent = 'No active tab';
+    return;
+  }
 
-// Toggle interpretation on/off
-toggleBtn.addEventListener('click', async () => {
   isActive = !isActive;
-  
-  // Save state
-  await chrome.storage.local.set({ isActive });
-  
-  // Send message to content script
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  
-  if (tab && tab.url && tab.url.includes('meet.google.com')) {
-    chrome.tabs.sendMessage(tab.id, {
-      action: isActive ? 'start' : 'stop'
+  toggleBtn.textContent = isActive ? 'Stop' : 'Start';
+  statusText.textContent = isActive ? 'Active' : 'Stopped';
+
+  try {
+    await chrome.tabs.sendMessage(tab.id, { 
+      action: isActive ? 'start' : 'stop' 
     });
-    updateUI();
-  } else {
-    alert('Please open a Google Meet call first!');
-    isActive = false;
-    await chrome.storage.local.set({ isActive: false });
-    updateUI();
+    chrome.storage.local.set({ isActive });
+  } catch (err) {
+    // If content script not loaded, try injecting it
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content/overlay.js']
+      });
+      // Try message again
+      await chrome.tabs.sendMessage(tab.id, { 
+        action: isActive ? 'start' : 'stop' 
+      });
+      chrome.storage.local.set({ isActive });
+    } catch (err2) {
+      statusText.textContent = 'Refresh page and try again';
+      isActive = !isActive;
+    }
   }
-});
+};
 
-// Save settings
-showConfidence.addEventListener('change', async () => {
-  await chrome.storage.local.set({ showConfidence: showConfidence.checked });
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab) {
-    chrome.tabs.sendMessage(tab.id, {
-      action: 'updateSettings',
-      settings: { showConfidence: showConfidence.checked }
-    });
-  }
-});
-
-soundEnabled.addEventListener('change', async () => {
-  await chrome.storage.local.set({ soundEnabled: soundEnabled.checked });
-});
-
-function updateUI() {
-  if (isActive) {
-    toggleBtn.textContent = 'Stop Interpretation';
-    toggleBtn.classList.add('stop');
-    statusText.textContent = 'Active';
-    statusDot.classList.add('active');
-  } else {
-    toggleBtn.textContent = 'Start Interpretation';
-    toggleBtn.classList.remove('stop');
-    statusText.textContent = 'Not Active';
-    statusDot.classList.remove('active');
-  }
-}
-
-// Listen for status updates from content script
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'statusUpdate') {
-    isActive = message.isActive;
-    updateUI();
-  }
+chrome.storage.local.get('isActive', (result) => {
+  isActive = result.isActive || false;
+  toggleBtn.textContent = isActive ? 'Stop' : 'Start';
+  statusText.textContent = isActive ? 'Active' : 'Stopped';
 });

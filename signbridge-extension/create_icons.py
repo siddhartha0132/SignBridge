@@ -47,14 +47,15 @@ def create_simple_icon(size, filename):
         draw.text((x, y), text, fill='white', font=font)
         
         img.save(filename)
-        print(f"✅ Created {filename} ({size}x{size})")
+        print(f"[OK] Created {filename} ({size}x{size})")
     else:
         # Fallback: create minimal PNG manually
         # This is a very basic 1x1 green pixel PNG
         png_data = create_minimal_png(size, color)
         with open(filename, 'wb') as f:
             f.write(png_data)
-        print(f"✅ Created placeholder {filename} ({size}x{size})")
+        print(f"[OK] Created placeholder {filename} ({size}x{size})")
+
 
 def create_minimal_png(size, color):
     """Create a minimal valid PNG file with solid color"""
@@ -101,5 +102,5 @@ if __name__ == '__main__':
     create_simple_icon(48, 'icon-48.png')
     create_simple_icon(128, 'icon-128.png')
     
-    print("\n✅ All icons created successfully!")
+    print("\n[OK] All icons created successfully!")
     print("\n💡 Tip: For better icons, use https://favicon.io/emoji-favicons/ with the 🤝 emoji")

@@ -1,6 +1,6 @@
 # 🤝 SignBridge Chrome Extension - Complete Guide
 
-Real-time sign language interpretation overlay for Google Meet video calls.
+Real-time sign language interpretation overlay for Google Meet, Zoom, MS Teams, Webex, Jitsi, and web video calls.
 
 ---
 
@@ -20,15 +20,17 @@ Real-time sign language interpretation overlay for Google Meet video calls.
 ## 🎯 What It Does
 
 ### Core Features:
-- **Real-time hand detection** using MediaPipe Hands (Google's ML)
-- **Live caption overlay** on Google Meet video calls
-- **Non-intrusive UI** - doesn't block meeting controls
-- **One-click toggle** - Easy start/stop
-- **Instant recognition** - 100-200ms latency
-- **Client-side processing** - No video data sent to servers
+- **Multi-Platform Video Call Support**: Works on **Google Meet**, **Zoom**, **Microsoft Teams**, **Webex**, **Jitsi Meet**, and any WebRTC video call.
+- **Real-time hand detection** using locally bundled MediaPipe Hands (Google ML).
+- **AI Sentence Reconstruction**: Automatically reconstructs signed word buffers into natural spoken sentences via NVIDIA NIM.
+- **Text-to-Speech (TTS) Engine**: Reads interpreted sentences out loud during video meetings.
+- **Bidirectional Hearing Mode**: Converts incoming speaker audio into live text captions for Deaf participants.
+- **Draggable & Minimizable Glassmorphic UI**: Position captions anywhere without blocking meeting controls or participant feeds.
+- **Instant recognition**: 100-200ms latency with local GPU acceleration.
+- **Privacy-First**: 100% client-side video processing — no video data sent to external servers.
 
 ### Use Cases:
-- ✅ Deaf/hard-of-hearing participants in video meetings
+- ✅ Deaf/hard-of-hearing participants in video meetings across Google Meet, Zoom, Teams, Webex, Jitsi
 - ✅ Sign language interpreters during calls
 - ✅ Accessibility compliance for remote teams
 - ✅ Educational sign language practice

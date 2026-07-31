@@ -1,330 +1,119 @@
-// Content script - injected into Google Meet pages
-// Handles video capture, hand detection, and caption overlay
-
-console.log('🤝 SignBridge extension loaded');
+console.log('🤝 SignBridge Gesture Detection Started');
 
 let isActive = false;
-let videoElement = null;
-let rafId = null;
-let handLandmarker = null;
-let showConfidence = true;
 let wordBuffer = [];
-let lastWord = null;
-let lastWordTime = 0;
 
-const WORD_GAP_MS = 1200;
-const BACKEND_URL = 'http://localhost:8787';
+const HAND_MODEL_URL = chrome.runtime.getURL('lib/hand_landmarker.task');
+const BUNDLE_URL = chrome.runtime.getURL('lib/vision_bundle.mjs');
+const WASM_PATH = chrome.runtime.getURL('lib/wasm');
 
-// Create overlay UI
+function detectPlatform() {
+  const url = window.location.hostname;
+  if (url.includes('meet.google.com')) return '📹 Google Meet';
+  if (url.includes('zoom.us')) return '💻 Zoom';
+  if (url.includes('teams')) return '👥 MS Teams';
+  if (url.includes('webex')) return '🌐 Webex';
+  if (url.includes('jitsi')) return '🎥 Jitsi';
+  return '⚡ Video Call';
+}
+
 function createOverlay() {
-  // Remove existing overlay if present
   const existing = document.getElementById('signbridge-overlay');
   if (existing) existing.remove();
 
   const overlay = document.createElement('div');
   overlay.id = 'signbridge-overlay';
-  overlay.className = 'signbridge-hidden';
-  
   overlay.innerHTML = `
-    <div id="signbridge-caption-box">
-      <p id="signbridge-caption-text">Ready to interpret...</p>
-      <div id="signbridge-word-buffer"></div>
+    <div style="position: fixed; bottom: 20px; right: 20px; background: rgba(30, 30, 40, 0.95); 
+                color: white; padding: 20px; border-radius: 12px; min-width: 280px; 
+                font-family: -apple-system, BlinkMacSystemFont, sans-serif; z-index: 99999; 
+                border: 2px solid #00d4ff; box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);">
+      <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">🤝 SignBridge</div>
+      <div style="font-size: 12px; color: #888; margin-bottom: 12px;">${detectPlatform()}</div>
+      <div id="caption" style="font-size: 14px; color: #00d4ff; min-height: 24px; margin-bottom: 12px;">Ready</div>
+      <div id="chips" style="margin-bottom: 12px;"></div>
+      <button id="clear-btn" style="background: #00d4ff; color: black; border: none; padding: 8px 12px; 
+              border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 12px;">Clear</button>
     </div>
   `;
-  
   document.body.appendChild(overlay);
-
-  // Status indicator
-  const statusIndicator = document.createElement('div');
-  statusIndicator.id = 'signbridge-status-indicator';
-  statusIndicator.className = 'signbridge-hidden';
-  statusIndicator.textContent = 'SignBridge Active';
-  document.body.appendChild(statusIndicator);
-
-  return overlay;
+  document.getElementById('clear-btn').onclick = () => {
+    wordBuffer = [];
+    document.getElementById('caption').textContent = 'Ready';
+    document.getElementById('chips').innerHTML = '';
+  };
 }
 
-// Find the video element in Google Meet
-function findVideoElement() {
-  // Google Meet's self-view video
-  const videos = document.querySelectorAll('video');
-  
-  // Try to find the main self-view video (usually the first one that's not muted in the UI sense)
-  for (const video of videos) {
-    if (video.readyState >= 2 && video.videoWidth > 0) {
-      console.log('📹 Found video element:', video);
-      return video;
-    }
+function updateCaption(text) {
+  const el = document.getElementById('caption');
+  if (el) el.textContent = text;
+}
+
+function updateChips() {
+  const chips = document.getElementById('chips');
+  if (!chips) return;
+  chips.innerHTML = wordBuffer.map(w =>
+    `<span style="display: inline-block; background: #00d4ff; color: black; padding: 4px 8px; 
+                 margin: 2px 4px 2px 0; border-radius: 4px; font-size: 11px; font-weight: bold;">${w}</span>`
+  ).join('');
+}
+
+// Bridge: listen for results/status coming back from the MAIN-world worker
+window.addEventListener('signbridge:status', (e) => {
+  const { status, detail } = e.detail || {};
+  console.log('📡 Worker status:', status, detail || '');
+  if (status === 'loading') updateCaption(detail || 'Loading...');
+  if (status === 'ready') {
+    isActive = true;
+    updateCaption('Ready - Show hand');
   }
-  
-  return videos[0] || null;
-}
-
-// Initialize MediaPipe HandLandmarker
-async function initHandLandmarker() {
-  try {
-    console.log('🔄 Loading MediaPipe...');
-    
-    // Import MediaPipe from CDN
-    const vision = await window.FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-    );
-    
-    handLandmarker = await window.HandLandmarker.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-        delegate: "GPU"
-      },
-      runningMode: "VIDEO",
-      numHands: 1,
-      minHandDetectionConfidence: 0.5,
-      minHandPresenceConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-    
-    console.log('✅ MediaPipe loaded successfully');
-    return true;
-  } catch (error) {
-    console.error('❌ Failed to load MediaPipe:', error);
-    updateCaption('Error loading hand detection', true);
-    return false;
+  if (status === 'error') {
+    console.error('❌ MediaPipe worker error:', detail);
+    updateCaption('Error: ' + detail);
+    isActive = false;
   }
-}
-
-// Load MediaPipe library dynamically
-function loadMediaPipeScript() {
-  return new Promise((resolve, reject) => {
-    if (window.HandLandmarker) {
-      resolve();
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.js';
-    script.onload = resolve;
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-}
-
-// Classify hand landmarks
-async function classifyGesture(landmarks) {
-  try {
-    // Simple client-side classification for built-in gestures
-    const fingers = detectFingers(landmarks);
-    const gesture = matchBuiltInGesture(fingers);
-    
-    if (gesture) {
-      return gesture;
-    }
-    
-    // For custom gestures, we'd need to call the backend
-    // Skipping for MVP to keep it fast
-    return null;
-  } catch (error) {
-    console.error('Classification error:', error);
-    return null;
+  if (status === 'stopped') {
+    isActive = false;
   }
-}
+});
 
-// Detect which fingers are extended
-function detectFingers(points) {
-  const wrist = points[0];
-  
-  // Check each finger (simple heuristic)
-  const fingerTips = [4, 8, 12, 16, 20]; // thumb, index, middle, ring, pinky
-  const fingerPips = [3, 6, 10, 14, 18];
-  
-  const extended = fingerTips.map((tip, i) => {
-    const tipPoint = points[tip];
-    const pipPoint = points[fingerPips[i]];
-    const dist1 = Math.hypot(tipPoint.x - wrist.x, tipPoint.y - wrist.y);
-    const dist2 = Math.hypot(pipPoint.x - wrist.x, pipPoint.y - wrist.y);
-    return dist1 > dist2 * 1.15;
-  });
-  
-  return extended;
-}
+window.addEventListener('signbridge:gesture', (e) => {
+  const { gesture } = e.detail || {};
+  if (!gesture) return;
+  wordBuffer.push(gesture);
+  updateCaption(`Detected: ${gesture.toUpperCase()}`);
+  updateChips();
+  console.log('✅ Gesture:', gesture);
+});
 
-// Match built-in gestures
-function matchBuiltInGesture(fingers) {
-  const patterns = [
-    { pattern: [true, true, true, true, true], word: 'hello', confidence: 0.80 },
-    { pattern: [false, false, false, false, false], word: 'stop', confidence: 0.85 },
-    { pattern: [true, false, false, false, false], word: 'yes', confidence: 0.80 },
-    { pattern: [false, true, true, false, false], word: 'please', confidence: 0.75 },
-    { pattern: [false, true, false, false, false], word: 'wait', confidence: 0.80 },
-  ];
-  
-  for (const { pattern, word, confidence } of patterns) {
-    if (pattern.every((v, i) => v === fingers[i])) {
-      return { word, confidence };
-    }
-  }
-  
-  return null;
-}
-
-// Update caption display
-function updateCaption(text, isError = false) {
-  const captionText = document.getElementById('signbridge-caption-text');
-  if (captionText) {
-    captionText.textContent = text;
-    captionText.style.color = isError ? '#ff5252' : 'white';
-  }
-}
-
-// Update word buffer display
-function updateWordBuffer() {
-  const bufferDiv = document.getElementById('signbridge-word-buffer');
-  if (bufferDiv) {
-    bufferDiv.textContent = wordBuffer.length > 0 
-      ? `Words: ${wordBuffer.join(' · ')}` 
-      : '';
-  }
-}
-
-// Main detection loop
-async function detectLoop() {
-  if (!isActive || !videoElement || !handLandmarker) {
-    return;
-  }
-  
-  try {
-    if (videoElement.readyState >= 2) {
-      const now = performance.now();
-      const results = handLandmarker.detectForVideo(videoElement, now);
-      
-      if (results && results.landmarks && results.landmarks[0]) {
-        const landmarks = results.landmarks[0];
-        const gesture = await classifyGesture(landmarks);
-        
-        if (gesture && gesture.word !== lastWord) {
-          lastWord = gesture.word;
-          lastWordTime = now;
-          wordBuffer.push(gesture.word);
-          
-          const confidenceText = showConfidence 
-            ? ` <span class="signbridge-confidence">${Math.round(gesture.confidence * 100)}%</span>` 
-            : '';
-          
-          updateCaption(gesture.word.toUpperCase() + confidenceText);
-          updateWordBuffer();
-          
-          console.log('👋 Detected:', gesture.word, `(${Math.round(gesture.confidence * 100)}%)`);
-        } else if (now - lastWordTime > WORD_GAP_MS) {
-          lastWord = null; // Allow repeating the same sign
-        }
-      } else {
-        // No hand detected
-        if (wordBuffer.length === 0) {
-          updateCaption('Show a hand sign...');
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Detection error:', error);
-  }
-  
-  rafId = requestAnimationFrame(detectLoop);
-}
-
-// Start interpretation
-async function start() {
+function start() {
   if (isActive) return;
-  
-  console.log('▶️  Starting SignBridge interpretation');
-  
-  // Show loading
-  updateCaption('Loading hand detection...');
-  
-  // Find video element
-  videoElement = findVideoElement();
-  if (!videoElement) {
-    updateCaption('No video found. Make sure your camera is on!', true);
-    console.error('❌ No video element found');
-    return;
-  }
-  
-  // Load MediaPipe
-  try {
-    await loadMediaPipeScript();
-    const loaded = await initHandLandmarker();
-    if (!loaded) return;
-  } catch (error) {
-    console.error('Failed to initialize:', error);
-    updateCaption('Failed to load. Please refresh the page.', true);
-    return;
-  }
-  
-  isActive = true;
-  wordBuffer = [];
-  lastWord = null;
-  
-  // Show overlay
-  const overlay = document.getElementById('signbridge-overlay');
-  const statusIndicator = document.getElementById('signbridge-status-indicator');
-  if (overlay) overlay.classList.remove('signbridge-hidden');
-  if (statusIndicator) statusIndicator.classList.remove('signbridge-hidden');
-  
-  updateCaption('Ready! Show a sign...');
-  
-  // Start detection loop
-  detectLoop();
-  
-  // Notify popup
-  chrome.runtime.sendMessage({ action: 'statusUpdate', isActive: true });
+  console.log('▶️ START clicked');
+  createOverlay();
+  updateCaption('Loading MediaPipe...');
+
+  // Hand off to the MAIN-world worker (content/mediapipe-worker.js) with
+  // pre-resolved extension URLs, since that script has no chrome.* access.
+  window.dispatchEvent(new CustomEvent('signbridge:start', {
+    detail: {
+      bundleUrl: BUNDLE_URL,
+      wasmPath: WASM_PATH,
+      modelUrl: HAND_MODEL_URL,
+    },
+  }));
 }
 
-// Stop interpretation
 function stop() {
-  if (!isActive) return;
-  
-  console.log('⏹️  Stopping SignBridge interpretation');
-  
+  console.log('⏹️ STOP clicked');
+  window.dispatchEvent(new CustomEvent('signbridge:stop'));
   isActive = false;
-  if (rafId) {
-    cancelAnimationFrame(rafId);
-    rafId = null;
-  }
-  
-  // Hide overlay
-  const overlay = document.getElementById('signbridge-overlay');
-  const statusIndicator = document.getElementById('signbridge-status-indicator');
-  if (overlay) overlay.classList.add('signbridge-hidden');
-  if (statusIndicator) statusIndicator.classList.add('signbridge-hidden');
-  
-  wordBuffer = [];
-  lastWord = null;
-  
-  // Notify popup
-  chrome.runtime.sendMessage({ action: 'statusUpdate', isActive: false });
+  const el = document.getElementById('signbridge-overlay');
+  if (el) el.remove();
 }
 
-// Listen for messages from popup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('📨 Message received:', message);
-  
-  if (message.action === 'start') {
-    start();
-  } else if (message.action === 'stop') {
-    stop();
-  } else if (message.action === 'updateSettings') {
-    if (message.settings.showConfidence !== undefined) {
-      showConfidence = message.settings.showConfidence;
-    }
-  }
-  
-  sendResponse({ success: true });
-  return true;
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.action === 'start') start();
+  if (msg.action === 'stop') stop();
 });
 
-// Initialize overlay on load
-createOverlay();
-
-// Load saved settings
-chrome.storage.local.get(['showConfidence'], (result) => {
-  showConfidence = result.showConfidence !== false;
-});
-
-console.log('✅ SignBridge content script ready');
+console.log('✅ SignBridge ready');

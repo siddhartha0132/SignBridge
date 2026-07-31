@@ -1,130 +1,210 @@
-/* SignBridge overlay styles - injected into Google Meet */
+/* SignBridge Multi-Platform Glassmorphic Overlay Styles */
 
 #signbridge-overlay {
   position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 99999;
-  pointer-events: none;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  bottom: 30px;
+  right: 30px;
+  z-index: 2147483647; /* Maximum z-index to stay above all meeting UIs */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+#signbridge-card {
+  width: 360px;
+  background: rgba(18, 24, 38, 0.88);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  color: #f1f5f9;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#signbridge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.signbridge-drag-handle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: grab;
+  flex: 1;
+}
+
+.signbridge-drag-handle:active {
+  cursor: grabbing;
+}
+
+.signbridge-logo {
+  font-weight: 700;
+  font-size: 13px;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+}
+
+.signbridge-platform-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.signbridge-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.signbridge-btn-subtle {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.signbridge-btn-subtle:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+#signbridge-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 #signbridge-caption-box {
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(10px);
-  color: white;
-  padding: 16px 24px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  max-width: 600px;
-  min-width: 300px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 14px;
+  border-radius: 10px;
   text-align: center;
-  border: 2px solid rgba(29, 111, 94, 0.6);
-  animation: slideUp 0.3s ease-out;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 #signbridge-caption-text {
-  font-size: 24px;
+  margin: 0;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.4;
-  margin: 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  color: #f8fafc;
 }
 
-#signbridge-word-buffer {
-  font-size: 14px;
-  color: #b0bec5;
+#signbridge-word-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
   margin-top: 8px;
-  font-weight: 400;
+}
+
+.signbridge-chip {
+  font-size: 11px;
+  font-weight: 500;
+  color: #e2e8f0;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
 .signbridge-confidence {
   display: inline-block;
-  font-size: 11px;
-  color: #4caf50;
-  margin-left: 6px;
-  background: rgba(76, 175, 80, 0.2);
-  padding: 2px 6px;
+  font-size: 10px;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.15);
+  padding: 1px 5px;
   border-radius: 4px;
+  margin-left: 4px;
 }
 
-#signbridge-status-indicator {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 99999;
-  background: rgba(29, 111, 94, 0.95);
-  backdrop-filter: blur(10px);
-  color: white;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
+#signbridge-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  pointer-events: none;
 }
 
-#signbridge-status-indicator::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  background: #4caf50;
-  border-radius: 50%;
-  animation: pulse 2s infinite;
+.signbridge-btn-action {
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  color: #ffffff;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
+  transition: all 0.15s ease;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(0.9); }
+.signbridge-btn-action:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
 }
 
-/* Hidden state */
+.signbridge-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.signbridge-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.signbridge-btn-secondary.active {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+}
+
+#signbridge-speech-caption {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px dashed rgba(56, 189, 248, 0.3);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.signbridge-speech-badge {
+  font-weight: 700;
+  color: #38bdf8;
+  margin-right: 6px;
+}
+
+#signbridge-speech-text {
+  color: #cbd5e1;
+}
+
+/* Utility Hidden Class */
 .signbridge-hidden {
   display: none !important;
 }
 
-/* Loading state */
-#signbridge-loading {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 99998;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 20px 30px;
-  border-radius: 12px;
-  font-size: 16px;
-  text-align: center;
-}
-
-.signbridge-spinner {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 10px;
-  vertical-align: middle;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
