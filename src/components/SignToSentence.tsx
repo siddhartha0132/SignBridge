@@ -34,7 +34,12 @@ export function SignToSentence() {
   useEffect(() => {
     if (!ready) return;
     let stopped = false;
-
+    
+    // Debounce state inside the effect
+    let consecutiveFrames = 0;
+    let pendingWord: string | null = null;
+    let lastRegisteredWord: string | null = null;
+    
     getHandLandmarker().then((landmarker) => {
       const loop = () => {
         if (stopped) return;
@@ -45,22 +50,39 @@ export function SignToSentence() {
           const points = result?.landmarks?.[0];
 
           if (points) {
-            // Distress check runs independently of word recognition — see
-            // workflow.md "Isolation of the emergency layer".
+            // Distress check runs independently of word recognition
             if (watcherRef.current.update(points, now)) {
               setDistressArmed(true);
               announce("Distress gesture detected. Confirm or cancel the alert.");
             }
 
             const match = classifyLandmarks(points);
-            if (match && match.word !== lastWordRef.current) {
-              lastWordRef.current = match.word;
-              lastWordTimeRef.current = now;
-              setWords((w) => [...w, match.word]);
-              announce(`Recognized sign: ${match.word}`);
-            } else if (now - lastWordTimeRef.current > WORD_GAP_MS) {
-              lastWordRef.current = null; // allow repeating the same sign again
+            if (match) {
+              if (match.word === pendingWord) {
+                consecutiveFrames++;
+                // Require 8 consecutive frames of the exact same sign to register it
+                if (consecutiveFrames === 8) {
+                  if (match.word !== lastRegisteredWord) {
+                    lastRegisteredWord = match.word;
+                    setWords((w) => [...w, match.word]);
+                    announce(`Recognized sign: ${match.word}`);
+                  }
+                }
+              } else {
+                pendingWord = match.word;
+                consecutiveFrames = 1;
+              }
+            } else {
+              // Hand is visible but no sign is recognized (transitioning/resting)
+              consecutiveFrames = 0;
+              pendingWord = null;
+              lastRegisteredWord = null;
             }
+          } else {
+            // Hand is not visible at all (dropped hand)
+            consecutiveFrames = 0;
+            pendingWord = null;
+            lastRegisteredWord = null;
           }
         }
         rafRef.current = requestAnimationFrame(loop);

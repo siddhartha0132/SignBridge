@@ -67,6 +67,12 @@ export function Conversation() {
   useEffect(() => {
     if (!ready) return;
     let stopped = false;
+    
+    // Debounce state inside the effect
+    let consecutiveFrames = 0;
+    let pendingWord: string | null = null;
+    let lastRegisteredWord: string | null = null;
+    
     getHandLandmarker().then((landmarker) => {
       const loop = () => {
         if (stopped) return;
@@ -74,12 +80,34 @@ export function Conversation() {
         if (video && video.readyState >= 2) {
           const result = landmarker.detectForVideo(video, performance.now());
           const points = result?.landmarks?.[0];
+
           if (points) {
             const match = classifyLandmarks(points);
-            if (match && match.word !== lastWordRef.current) {
-              lastWordRef.current = match.word;
-              setWords((w) => [...w, match.word]);
+            if (match) {
+              if (match.word === pendingWord) {
+                consecutiveFrames++;
+                // Require 8 consecutive frames of the exact same sign to register it
+                if (consecutiveFrames === 8) {
+                  if (match.word !== lastRegisteredWord) {
+                    lastRegisteredWord = match.word;
+                    setWords((w) => [...w, match.word]);
+                  }
+                }
+              } else {
+                pendingWord = match.word;
+                consecutiveFrames = 1;
+              }
+            } else {
+              // Hand is visible but no sign is recognized (transitioning/resting)
+              consecutiveFrames = 0;
+              pendingWord = null;
+              lastRegisteredWord = null;
             }
+          } else {
+            // Hand is not visible at all (dropped hand)
+            consecutiveFrames = 0;
+            pendingWord = null;
+            lastRegisteredWord = null;
           }
         }
         rafRef.current = requestAnimationFrame(loop);
