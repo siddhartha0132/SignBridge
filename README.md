@@ -123,6 +123,10 @@ PORT=8787
 ### Google Meet Extension
 ![Google Meet Extension](https://drive.google.com/file/d/1gZ4VO78km9YjC2cQTjH-DrGJRXNz_CMT/view?usp=sharing)
 
+![Screenshot 1](readme-1.png)
+
+![Screenshot 2](readme-2.png)
+
 ---
 
 ## Known Limitations
